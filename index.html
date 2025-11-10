@@ -196,6 +196,52 @@
             display: none;
             z-index: 1000;
         }
+
+        .hamburger-menu {
+            display: none;
+            cursor: pointer;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .hamburger-menu .line {
+            width: 25px;
+            height: 3px;
+            background-color: #2d3748;
+        }
+
+        @media (max-width: 768px) {
+            .toolbar {
+                justify-content: space-between;
+                position: relative;
+            }
+
+            .toolbar-buttons {
+                display: none;
+                flex-direction: column;
+                position: absolute;
+                top: 100%;
+                left: 0;
+                background: white;
+                width: 100%;
+                box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+                padding: 10px;
+                gap: 5px;
+            }
+
+            .toolbar-buttons.active {
+                display: flex;
+            }
+
+            .toolbar-buttons button, .toolbar-buttons label {
+                width: 100%;
+                text-align: left;
+            }
+
+            .hamburger-menu {
+                display: flex;
+            }
+        }
     </style>
 </head>
 <body>
@@ -205,20 +251,27 @@
         </div>
 
         <div class="toolbar">
-            <label for="audioFile">
-                📁 Load Audio
-                <input type="file" id="audioFile" accept="audio/*">
-            </label>
-            <button onclick="playAudio()">▶️ Play</button>
-            <button onclick="pauseAudio()">⏸️ Pause</button>
-            <button onclick="stopAudio()">⏹️ Stop</button>
-            <button onclick="toggleRecording()" id="recordBtn">🎙️ Start Recording</button>
-            <button onclick="zoomIn()">🔍+ Zoom In</button>
-            <button onclick="zoomOut()">🔍- Zoom Out</button>
-            <button onclick="resetView()">🔄 Reset View</button>
-            <button onclick="exportImage()">💾 Export Image</button>
-            <button onclick="startFileRecognition()" id="speechBtn">📝 File Speech Recognition</button>
-            <button onclick="clearLabels()">🗑️ Clear Labels</button>
+            <div class="hamburger-menu">
+                <div class="line"></div>
+                <div class="line"></div>
+                <div class="line"></div>
+            </div>
+            <div class="toolbar-buttons">
+                <label for="audioFile">
+                    📁 Load Audio
+                    <input type="file" id="audioFile" accept="audio/*">
+                </label>
+                <button onclick="playAudio()">▶️ Play</button>
+                <button onclick="pauseAudio()">⏸️ Pause</button>
+                <button onclick="stopAudio()">⏹️ Stop</button>
+                <button onclick="toggleRecording()" id="recordBtn">🎙️ Start Recording</button>
+                <button onclick="zoomIn()">🔍+ Zoom In</button>
+                <button onclick="zoomOut()">🔍- Zoom Out</button>
+                <button onclick="resetView()">🔄 Reset View</button>
+                <button onclick="exportImage()">💾 Export Image</button>
+                <button onclick="startFileRecognition()" id="speechBtn">📝 File Speech Recognition</button>
+                <button onclick="clearLabels()">🗑️ Clear Labels</button>
+            </div>
         </div>
 
         <div class="main-content">
@@ -1919,6 +1972,10 @@
                 ctx.restore();
             }
         }
+
+        document.querySelector('.hamburger-menu').addEventListener('click', () => {
+            document.querySelector('.toolbar-buttons').classList.toggle('active');
+        });
     </script>
 </body>
 </html>
