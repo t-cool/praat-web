@@ -210,6 +210,22 @@
             background-color: #2d3748;
         }
 
+        #settings-toggle {
+            cursor: pointer;
+            font-size: 24px;
+            margin-left: 15px;
+        }
+
+        #sidebar-container {
+            width: 200px;
+            transition: width 0.3s;
+        }
+
+        #sidebar-container.hidden {
+            width: 0;
+            overflow: hidden;
+        }
+
         @media (max-width: 768px) {
             .toolbar {
                 justify-content: space-between;
@@ -256,6 +272,9 @@
                 <div class="line"></div>
                 <div class="line"></div>
             </div>
+            <div id="settings-toggle">
+                ⚙️
+            </div>
             <div class="toolbar-buttons">
                 <label for="audioFile">
                     📁 Load Audio
@@ -275,10 +294,11 @@
         </div>
 
         <div class="main-content">
-            <div class="sidebar">
-                <h3>Analysis Settings</h3>
+            <div id="sidebar-container" class="hidden">
+                <div class="sidebar">
+                    <h3>Analysis Settings</h3>
 
-                <div class="control-group">
+                    <div class="control-group">
                     <label>Frequency Range (Hz)</label>
                     <input type="range" id="freqMin" min="0" max="1000" value="0">
                     <div class="value">Min: <span id="freqMinValue">0</span> Hz</div>
@@ -364,6 +384,7 @@
                     <label>
                         <input type="checkbox" id="showIntensity" checked> Intensity
                     </label>
+                </div>
                 </div>
             </div>
 
@@ -1975,6 +1996,13 @@
 
         document.querySelector('.hamburger-menu').addEventListener('click', () => {
             document.querySelector('.toolbar-buttons').classList.toggle('active');
+        });
+
+        document.getElementById('settings-toggle').addEventListener('click', () => {
+            document.getElementById('sidebar-container').classList.toggle('hidden');
+            // We need to resize the canvases when the sidebar is toggled
+            // to ensure they fill the new available space correctly.
+            setTimeout(resizeCanvases, 300); // Wait for the transition to finish
         });
     </script>
 </body>
