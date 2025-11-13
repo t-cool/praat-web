@@ -278,6 +278,7 @@
                 ⚙️
             </div>
             <div class="toolbar-buttons">
+                <button onclick="toggleRecording()" id="recordBtn">🎙️ Start Recording</button>
                 <label for="audioFile">
                     📁 Load Audio
                     <input type="file" id="audioFile" accept="audio/*">
@@ -285,10 +286,8 @@
                 <button onclick="playAudio()">▶️ Play</button>
                 <button onclick="pauseAudio()">⏸️ Pause</button>
                 <button onclick="stopAudio()">⏹️ Stop</button>
-                <button onclick="toggleRecording()" id="recordBtn">🎙️ Start Recording</button>
                 <button onclick="resetView()">🔄 Reset View</button>
                 <button onclick="exportImage()">💾 Export Image</button>
-                <button onclick="startFileRecognition()" id="speechBtn">📝 File Speech Recognition</button>
                 <button onclick="clearLabels()">🗑️ Clear Labels</button>
             </div>
         </div>
@@ -390,18 +389,18 @@
 
             <div class="canvas-container">
                 <div class="analysis-panel">
-                    <h4>🌈 Spectrogram & Formants</h4>
+                    <h4>Spectrogram</h4>
                     <canvas id="spectrogramCanvas" height="400"></canvas>
                     <p id="speechCaptions" style="margin-top: 10px; padding: 10px; background: #f7fafc; border-radius: 4px; min-height: 30px; font-size: 14px; color: #2d3748; display: none;"></p>
                 </div>
 
                 <div class="analysis-panel">
-                    <h4>📊 Waveform & Intensity</h4>
+                    <h4>Intensity</h4>
                     <canvas id="waveformCanvas" height="150"></canvas>
                 </div>
 
                 <div class="analysis-panel">
-                    <h4>🎵 Pitch Contour</h4>
+                    <h4>Pitch</h4>
                     <canvas id="pitchCanvas" height="150"></canvas>
                 </div>
             </div>
@@ -801,7 +800,6 @@
             ctx.fillStyle = '#ffffff';
             ctx.strokeStyle = '#ffffff';
             ctx.font = 'bold 11px Arial';
-            ctx.textAlign = 'center';
             ctx.lineWidth = 1;
 
             // Draw time labels at bottom
@@ -816,13 +814,19 @@
                 ctx.lineTo(x, height);
                 ctx.stroke();
 
+                // Adjust text alignment to prevent cutoff
+                if (i === 0) {
+                    ctx.textAlign = 'left';
+                } else if (i === numLabels) {
+                    ctx.textAlign = 'right';
+                } else {
+                    ctx.textAlign = 'center';
+                }
+
                 // Draw label
                 ctx.fillText(time.toFixed(1) + 's', x, height - 8);
             }
 
-            // Draw axis label
-            ctx.font = 'bold 12px Arial';
-            ctx.fillText('Time (s)', width / 2, height - 20);
         }
 
         function drawPitchContour() {
@@ -1208,14 +1212,6 @@
                 ctx.fillText(freq.toFixed(0) + ' Hz', 45, y + 3);
             }
 
-            // Draw axis label
-            ctx.save();
-            ctx.font = 'bold 12px Arial';
-            ctx.translate(15, height / 2);
-            ctx.rotate(-Math.PI / 2);
-            ctx.textAlign = 'center';
-            ctx.fillText('Frequency (Hz)', 0, 0);
-            ctx.restore();
         }
 
         function drawPitchScale(ctx, width, height, minPitch, maxPitch) {
@@ -1443,7 +1439,6 @@
 
         // Web Speech API Functions
         function initializeSpeechRecognition() {
-            const speechBtn = document.getElementById('speechBtn');
 
             if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
                 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -1495,128 +1490,20 @@
                 recognition.onerror = function(event) {
                     console.error('Speech recognition error:', event.error);
                     document.getElementById('statusMessage').textContent = 'Error: ' + event.error;
-                    stopFileRecognition();
                 };
 
                 recognition.onend = function() {
                     isRecognizing = false;
-                    document.getElementById('speechBtn').textContent = '📝 File Speech Recognition';
-                    document.getElementById('speechBtn').style.background = '';
                     document.getElementById('statusMessage').textContent = 'Recognition completed';
                 };
-                speechBtn.disabled = false;
                 document.getElementById('statusMessage').textContent = 'Speech recognition ready';
             } else {
                 console.warn('Speech Recognition API not supported');
                 recognition = null;
-                speechBtn.disabled = false;
                 document.getElementById('statusMessage').textContent = 'File speech recognition via Whisper is available';
             }
         }
 
-        async function startFileRecognition() {
-            if (!audioBuffer) {
-                alert('Please upload an audio file first.');
-                return;
-            }
-
-            if (isRecognizing) {
-                stopFileRecognition();
-                return;
-            }
-
-            if (!await getAudioFileForWhisper()) {
-                alert('Failed to prepare audio file. Please try another file.');
-                return;
-            }
-
-            speechLabels = [];
-            const speechBtn = document.getElementById('speechBtn');
-
-            recognitionMode = 'whisper';
-            isRecognizing = true;
-            whisperAbortRequested = false;
-            const currentTaskId = ++whisperTaskId;
-
-            speechBtn.textContent = '⏹️ Stop Recognition';
-            speechBtn.style.background = '#e53e3e';
-            document.getElementById('statusMessage').textContent = 'Initializing Whisper (WASM)...';
-
-            try {
-                const transcriber = await getWhisperPipeline();
-                if (!isActiveWhisperTask(currentTaskId)) {
-                    return;
-                }
-
-                const whisperInput = await prepareWhisperInput(audioBuffer);
-                if (!isActiveWhisperTask(currentTaskId)) {
-                    return;
-                }
-
-                document.getElementById('statusMessage').textContent = 'Recognizing with Whisper (WASM)...';
-
-                const languageCode = mapLanguageCode(document.getElementById('recognitionLanguage').value);
-                const options = {
-                    return_timestamps: true,
-                    chunk_length_s: 30,
-                    stride_length_s: 5,
-                    task: 'transcribe',
-                    sampling_rate: whisperInput.sampleRate
-                };
-                if (languageCode) {
-                    options.language = languageCode;
-                }
-
-                const result = await transcriber(whisperInput.audio, options);
-
-                if (!isActiveWhisperTask(currentTaskId)) {
-                    return;
-                }
-
-                let labelsAdded = false;
-
-                if (result && Array.isArray(result.chunks) && result.chunks.length > 0) {
-                    result.chunks.forEach(chunk => {
-                        if (chunk && chunk.text) {
-                            const timestamps = chunk.timestamp || chunk.timestamps;
-                            let start = 0;
-                            if (Array.isArray(timestamps)) {
-                                start = parseFloat(timestamps[0]) || 0;
-                            } else if (timestamps && typeof timestamps.start === 'number') {
-                                start = timestamps.start;
-                            }
-                            addSpeechLabel(chunk.text.trim(), start);
-                            labelsAdded = true;
-                        }
-                    });
-                } else if (result && typeof result.text === 'string' && result.text.trim()) {
-                    addSpeechLabel(result.text.trim(), 0);
-                    labelsAdded = true;
-                }
-
-                if (audioBuffer && labelsAdded) {
-                    analyzeAndDraw();
-                }
-
-                console.log('Whisper recognition result (raw):', result);
-
-                document.getElementById('statusMessage').textContent = labelsAdded ? 'Whisper recognition completed' : 'Whisper recognition completed (no text)';
-            } catch (error) {
-                if (whisperAbortRequested) {
-                    document.getElementById('statusMessage').textContent = 'Whisper recognition interrupted';
-                } else {
-                    console.error('Whisper WASM transcription failed:', error);
-                    document.getElementById('statusMessage').textContent = 'Whisper recognition error: ' + (error && error.message ? error.message : error);
-                }
-            } finally {
-                if (currentTaskId === whisperTaskId) {
-                    recognitionMode = null;
-                    isRecognizing = false;
-                    speechBtn.textContent = '📝 File Speech Recognition';
-                    speechBtn.style.background = '';
-                }
-            }
-        }
 
         async function getAudioFileForWhisper() {
             if (lastAudioFile) {
@@ -1769,31 +1656,6 @@
             }
         }
 
-        function stopFileRecognition() {
-            const speechBtn = document.getElementById('speechBtn');
-
-            if (recognitionMode === 'whisper') {
-                whisperAbortRequested = true;
-                recognitionMode = null;
-                isRecognizing = false;
-                whisperTaskId++;
-                document.getElementById('statusMessage').textContent = 'Whisper recognition interrupted';
-                speechBtn.textContent = '📝 ファイル音声認識';
-                speechBtn.style.background = '';
-                return;
-            }
-
-            if (recognition && isRecognizing) {
-                recognition.stop();
-            }
-            if (audioSource && isPlaying) {
-                audioSource.stop();
-                isPlaying = false;
-            }
-
-            speechBtn.textContent = '📝 ファイル音声認識';
-            speechBtn.style.background = '';
-        }
 
         function addSpeechLabel(text, timestamp) {
             const duration = audioBuffer ? audioBuffer.duration : null;
